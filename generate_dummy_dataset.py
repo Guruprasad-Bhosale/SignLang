@@ -51,41 +51,107 @@ def generate_base_hand():
 
 def modify_hand_for_class(base_hand, char_code):
     """
-    Modifies base hand coordinates based on letter ASCII value to create
-    consistent, mathematically separable classes.
+    Modifies base hand coordinates based on letter to create realistic
+    ASL sign language gestures synthetically.
     """
     hand = base_hand.copy()
-    val = char_code - ord('A')
+    char = chr(char_code)
     
-    # We can control finger extensions based on bits of val
-    # Bit 0: Thumb fold
-    if val & 1:
-        # Fold thumb: pull tips towards center
-        hand[2:5] *= 0.6
-    # Bit 1: Index fold
-    if val & 2:
-        # Fold index
-        hand[6:9] *= 0.5
-    # Bit 2: Middle fold
-    if val & 4:
-        # Fold middle
-        hand[10:13] *= 0.5
-    # Bit 3: Ring fold
-    if val & 8:
-        # Fold ring
-        hand[14:17] *= 0.5
-    # Bit 4: Pinky fold
-    if val & 16:
-        # Fold pinky
-        hand[18:21] *= 0.5
+    # helper: fold finger (scale coordinates of joints above MCP)
+    def fold_finger(finger_name, scale=0.35):
+        # Finger indices:
+        # thumb: 1-4
+        # index: 5-8
+        # middle: 9-12
+        # ring: 13-16
+        # pinky: 17-20
+        idxs = {
+            'thumb': [2, 3, 4],
+            'index': [6, 7, 8],
+            'middle': [10, 11, 12],
+            'ring': [14, 15, 16],
+            'pinky': [18, 19, 20]
+        }[finger_name]
+        hand[idxs] *= scale
+
+    # Default: open hand (all fingers extended)
+    
+    if char == 'A':
+        # Fist: fold all fingers, thumb held at the side
+        fold_finger('index', 0.35)
+        fold_finger('middle', 0.35)
+        fold_finger('ring', 0.35)
+        fold_finger('pinky', 0.35)
+        # Thumb remains extended or pressed against the side of index
+        hand[1:5] *= np.array([1.1, 0.8, 0.7, 0.7]).reshape(-1, 1)
+    elif char == 'B':
+        # Flat hand: fold thumb across palm, others extended and close
+        fold_finger('thumb', 0.35)
+        # Narrow the fingers to represent flat hand
+        hand[[5,6,7,8], 0] *= 0.5
+        hand[[9,10,11,12], 0] *= 0.5
+        hand[[13,14,15,16], 0] *= 0.5
+        hand[[17,18,19,20], 0] *= 0.5
+    elif char == 'C':
+        # Curved shape: all fingers partially folded
+        fold_finger('thumb', 0.7)
+        fold_finger('index', 0.7)
+        fold_finger('middle', 0.7)
+        fold_finger('ring', 0.7)
+        fold_finger('pinky', 0.7)
+    elif char == 'D':
+        # Pointer: index extended, others folded
+        fold_finger('thumb', 0.4)
+        fold_finger('middle', 0.35)
+        fold_finger('ring', 0.35)
+        fold_finger('pinky', 0.35)
+    elif char == 'E':
+        # Folded claws: all fingers folded tightly
+        fold_finger('thumb', 0.4)
+        fold_finger('index', 0.3)
+        fold_finger('middle', 0.3)
+        fold_finger('ring', 0.3)
+        fold_finger('pinky', 0.3)
+    elif char == 'F':
+        # OK sign: thumb and index touch (folded), others extended
+        fold_finger('index', 0.4)
+        fold_finger('thumb', 0.5)
+        # move tips of index and thumb close together
+        hand[4] = hand[8] = (hand[4] + hand[8]) / 2.0
+    elif char == 'I':
+        # Pinky extended, others folded
+        fold_finger('thumb', 0.4)
+        fold_finger('index', 0.35)
+        fold_finger('middle', 0.35)
+        fold_finger('ring', 0.35)
+    elif char == 'L':
+        # L-shape: thumb and index extended, others folded
+        fold_finger('middle', 0.35)
+        fold_finger('ring', 0.35)
+        fold_finger('pinky', 0.35)
+    elif char in ['U', 'V']:
+        # Index and middle extended, others folded
+        fold_finger('thumb', 0.4)
+        fold_finger('ring', 0.35)
+        fold_finger('pinky', 0.35)
+    elif char == 'W':
+        # Index, middle, ring extended, thumb and pinky folded
+        fold_finger('thumb', 0.4)
+        fold_finger('pinky', 0.35)
+    elif char == 'Y':
+        # Thumb and pinky extended, index, middle, ring folded
+        fold_finger('index', 0.35)
+        fold_finger('middle', 0.35)
+        fold_finger('ring', 0.35)
+    else:
+        # Fallback binary pattern for other letters to maintain mathematical separability
+        val = char_code - ord('A')
+        if val & 1: fold_finger('thumb', 0.4)
+        if val & 2: fold_finger('index', 0.4)
+        if val & 4: fold_finger('middle', 0.4)
+        if val & 8: fold_finger('ring', 0.4)
+        if val & 16: fold_finger('pinky', 0.4)
         
-    # Add unique class signature offsets
-    signature_offset = (val + 1) * 0.015
-    hand[8] += [signature_offset, 0, 0] # modify index tip x
-    hand[12] += [0, signature_offset, 0] # modify middle tip y
-    hand[16] += [0, 0, signature_offset] # modify ring tip z
-    hand[20] -= [signature_offset, 0, 0] # modify pinky tip x
-    
     return hand
 
 def main():
